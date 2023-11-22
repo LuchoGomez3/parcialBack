@@ -2,8 +2,13 @@ package parcialBackend.recuperatorio.services.implementations;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import parcialBackend.recuperatorio.entities.Album;
+import parcialBackend.recuperatorio.entities.Artist;
 import parcialBackend.recuperatorio.entities.Track;
 import parcialBackend.recuperatorio.entities.dtos.TrackDto;
+import parcialBackend.recuperatorio.entities.dtos.TrackEnunciado;
+import parcialBackend.recuperatorio.repositories.AlbumRepository;
+import parcialBackend.recuperatorio.repositories.ArtistRepository;
 import parcialBackend.recuperatorio.repositories.TrackRepository;
 import parcialBackend.recuperatorio.services.InvoiceItemService;
 import parcialBackend.recuperatorio.services.TrackService;
@@ -21,20 +26,26 @@ public class TrackServiceImpl implements TrackService {
     private final TrackMapper trackMapper;
     private final TrackDtoMapper trackDtoMapper;
     private final InvoiceItemService invoiceItemService;
+
+    private final AlbumRepository albumRepository;
+
+    private final ArtistRepository artistRepository;
     //private final TrackCustomerGenreMapper trackCustomerGenreMapper;
 
     @Autowired
     public TrackServiceImpl(TrackRepository trackRepository,
                             TrackMapper trackMapper,
                             TrackDtoMapper trackDtoMapper,
-                            InvoiceItemService invoiceItemService
+                            InvoiceItemService invoiceItemService,
                             //,TrackCustomerGenreMapper trackCustomerGenreMapper
-                            ) {
+                            AlbumRepository albumRepository, ArtistRepository artistRepository) {
         this.trackRepository = trackRepository;
         this.trackMapper = trackMapper;
         this.trackDtoMapper = trackDtoMapper;
         this.invoiceItemService = invoiceItemService;
         //this.trackCustomerGenreMapper = trackCustomerGenreMapper;
+        this.albumRepository = albumRepository;
+        this.artistRepository = artistRepository;
     }
 
     @Override
@@ -74,6 +85,38 @@ public class TrackServiceImpl implements TrackService {
     public void update(TrackDto entity) {
         Optional<Track> track = Stream.of(entity).map(trackMapper).findFirst();
         track.ifPresent(trackRepository::save);
+    }
+
+    @Override
+    public List<TrackEnunciado> getListaTracksByArtist(Integer id) {
+
+        List<Album> albums = albumRepository.findAll();
+        List<Album> albumArtista = new ArrayList<>();
+
+        List<TrackEnunciado> nuevosTracks = new ArrayList<>();
+
+        for(Album album:albums){
+            if (album.getArtist().getArtistId() == id){
+                albumArtista.add(album);
+            }
+        }
+
+        List<Track> listaTracks = trackRepository.findAll();
+
+        for (Track track : listaTracks){
+            for (Album fila : albumArtista){
+                if (track.getAlbum().getAlbumId() == fila.getAlbumId()){
+                    TrackEnunciado nuevoTrack = new TrackEnunciado(track.getTrackId(),
+                            track.getName(),
+                            fila.getTitle(),
+                            track.getMillisecionds()/1000,
+                            track.getUnitPrice());
+                    nuevosTracks.add(nuevoTrack);
+                }
+            }
+        }
+
+        return nuevosTracks;
     }
 
     /*@Override
